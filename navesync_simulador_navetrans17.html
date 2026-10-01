@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>NaveSync — Simulador de Operação | navetrans17</title>
+<style>
+:root{
+  --bg:#07102a; --bg2:#0b1736; --panel:#0e1b3d; --panel2:#12224a; --line:#1d2f5c; --line2:#27407a;
+  --txt:#e6edf7; --mut:#8a9bbd; --dim:#5a6c92;
+  --teal:#16c2b0; --blue:#2f80d0; --orange:#f07c1e; --yellow:#f5b800; --red:#e0413a; --redbg:#4a0d10; --green:#22c55e;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:var(--bg);color:var(--txt);font-family:Inter,"Segoe UI",Roboto,Arial,sans-serif;font-size:14px}
+body{display:flex;flex-direction:column;min-height:100vh}
+.mono{font-family:"JetBrains Mono",Consolas,"Courier New",monospace;font-variant-numeric:tabular-nums}
+
+/* HEADER */
+header{display:flex;align-items:center;gap:18px;padding:10px 18px;background:linear-gradient(90deg,#081330,#10214d);border-bottom:1px solid var(--line2)}
+.brand{display:flex;align-items:center;gap:10px}
+.brand b{font-size:22px;letter-spacing:-.3px}
+.brand small{display:block;font-size:10.5px;letter-spacing:2px;color:var(--mut);text-transform:uppercase}
+.sel{display:flex;flex-direction:column;gap:2px;margin-left:12px}
+.sel label{font-size:10px;color:var(--mut)}
+.sel div{background:#0a1430;border:1px solid var(--line2);border-radius:6px;padding:4px 10px;font-size:13px;font-weight:600}
+.chips{display:flex;gap:8px;margin-left:auto;flex-wrap:wrap}
+.chip{display:flex;align-items:center;gap:7px;background:#0a1430;border:1px solid var(--line);border-radius:20px;padding:5px 11px;font-size:11.5px;white-space:nowrap}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 8px currentColor;color:var(--green)}
+.dot.w{background:var(--orange);color:var(--orange)} .dot.r{background:var(--red);color:var(--red)} .dot.b{background:var(--teal);color:var(--teal)}
+.clock{font-size:12px;color:var(--mut);text-align:right}
+.clock b{display:block;color:var(--txt);font-size:15px}
+
+/* PHASE BAR */
+.phasebar{display:flex;align-items:center;gap:10px;padding:8px 18px;background:#081229;border-bottom:1px solid var(--line)}
+.ph{flex:1;position:relative;background:#0c1838;border:1px solid var(--line);border-radius:7px;padding:6px 9px;cursor:pointer;overflow:hidden;min-width:0}
+.ph span{position:relative;z-index:1;font-size:11.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block;color:var(--mut)}
+.ph i{position:absolute;left:0;top:0;bottom:0;width:0;background:linear-gradient(90deg,#16c2b033,#16c2b055)}
+.ph.on{border-color:var(--teal)} .ph.on span{color:var(--txt);font-weight:600}
+.ph.done span{color:#b9c6de}
+.ctl{display:flex;gap:6px}
+.ctl button{background:#10214a;border:1px solid var(--line2);color:var(--txt);border-radius:7px;padding:6px 11px;font-size:12px;cursor:pointer}
+.ctl button:hover{border-color:var(--teal)}
+.ctl button.act{background:var(--teal);color:#04201c;border-color:var(--teal);font-weight:700}
+
+/* MAIN GRID */
+main{flex:1;display:grid;grid-template-columns:1.1fr 1.3fr .95fr;gap:12px;padding:12px 18px;min-height:0}
+.col{display:flex;flex-direction:column;gap:12px;min-height:0;min-width:0}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;overflow:hidden;display:flex;flex-direction:column;min-height:0}
+.card h3{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:11px;letter-spacing:1.4px;text-transform:uppercase;color:var(--mut);padding:9px 13px;border-bottom:1px solid var(--line);font-weight:600}
+.tag{font-size:10px;letter-spacing:.5px;padding:2px 8px;border-radius:10px;border:1px solid;text-transform:none;font-weight:600}
+.tag.g{color:var(--green);border-color:#22c55e55;background:#0b2a18}
+.tag.o{color:var(--orange);border-color:#f07c1e55;background:#2d1705}
+.tag.t{color:var(--teal);border-color:#16c2b055;background:#062824}
+.tag.r{color:var(--red);border-color:#e0413a55;background:#2c0a09}
+canvas{display:block;width:100%;height:100%}
+.cvwrap{flex:1;position:relative;min-height:0}
+
+/* CLOUD DASHBOARD */
+.cloudtop{display:flex;align-items:center;gap:10px;padding:9px 13px;border-bottom:1px solid var(--line);background:#0b1633}
+.cloudtop .logo{font-weight:800;letter-spacing:1px;font-size:14px}
+.btn-g{background:#1f9d55;color:#fff;border-radius:6px;padding:3px 9px;font-size:11.5px;font-weight:700}
+.cloudtop .who{margin-left:auto;font-size:12px;color:var(--mut)}
+.hullwrap{position:relative;flex:1;min-height:250px;padding:12px 14px}
+.hull{position:absolute;inset:12px 14px;clip-path:polygon(7% 0,93% 0,100% 16%,100% 84%,93% 100%,7% 100%,0 84%,0 16%);background:#1a2a55;padding:2px}
+.hull-in{width:100%;height:100%;clip-path:polygon(7% 0,93% 0,100% 16%,100% 84%,93% 100%,7% 100%,0 84%,0 16%);background:#0b1430;display:grid;grid-template-columns:repeat(4,1fr);grid-template-rows:1fr 1fr;gap:10px;padding:14px 10%}
+.tk{position:relative;background:#050a18;border:1px solid #22345f;border-radius:8px;overflow:hidden;display:flex;flex-direction:column;align-items:center;padding-top:7px;min-height:0}
+.tk .nm{font-size:12.5px;font-weight:700;z-index:2}
+.tk .cm,.tk .lt{font-size:11.5px;color:#c3cde0;z-index:2}
+.tk .fill{position:absolute;left:0;right:0;bottom:0;background:var(--yellow);transition:height .6s linear,background .4s}
+.tk .pc{position:absolute;bottom:6px;left:0;right:0;text-align:center;font-weight:800;font-size:14px;z-index:2;color:#1b1400}
+.tk.low .fill{background:var(--green);height:6px!important}
+.tk.low .pc{color:#86efac;bottom:12px}
+.tk.hi .fill{background:#6b1417}
+.tk.hi .pc{color:#fff}
+.tk.hi{border-color:#e0413a}
+.tk.ev{animation:evb .6s step-end infinite}
+@keyframes evb{50%{border-color:var(--orange);box-shadow:0 0 12px #f07c1e88 inset}}
+.stale{position:absolute;inset:12px 14px;display:none;align-items:center;justify-content:center;pointer-events:none}
+.stale div{background:#2b1606ee;border:1px solid var(--orange);color:#ffd7b0;border-radius:10px;padding:10px 16px;font-size:13px;text-align:center;box-shadow:0 6px 24px #0008}
+.stale b{display:block;color:var(--orange);font-size:14px;margin-bottom:2px}
+.hullwrap.off .hull-in{filter:grayscale(.85) brightness(.6)}
+.hullwrap.off .stale{display:flex}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);border-top:1px solid var(--line)}
+.kpi{padding:9px 12px;border-right:1px solid var(--line)}
+.kpi:last-child{border-right:none}
+.kpi small{display:block;font-size:10px;color:var(--mut);text-transform:uppercase;letter-spacing:.8px}
+.kpi b{font-size:18px}
+.kpi em{font-style:normal;font-size:11px;color:var(--dim)}
+.trend{height:150px;border-top:1px solid var(--line);position:relative}
+
+/* KIT */
+.kit{margin:10px 12px;background:#5d6470;border-radius:12px;padding:10px;box-shadow:inset 0 0 0 2px #707885,0 4px 14px #0006}
+.lcd{background:#0a1224;border:3px solid #1c1f25;border-radius:6px;padding:7px}
+.lcdtop{display:flex;align-items:center;gap:6px;font-size:10px;margin-bottom:6px}
+.lcdtop b{font-size:11px;letter-spacing:.6px}
+.lcdtop .st{margin-left:auto;font-size:9.5px}
+.lgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:4px}
+.lt2{background:#050a16;border:1px solid #1d2d52;border-radius:4px;padding:3px 3px 0;font-size:8.5px;line-height:1.25;text-align:center;height:52px;position:relative;overflow:hidden}
+.lt2 b{font-size:8.5px;display:block}
+.lt2 .f{position:absolute;left:0;right:0;bottom:0;height:13px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:9px;background:var(--yellow);color:#1b1400}
+.lt2.low .f{background:var(--green);height:4px;font-size:0}
+.lt2.hi .f{background:#9b1c1f;color:#fff}
+.lcdbot{display:flex;gap:6px;margin-top:6px;font-size:9px;align-items:center}
+.lcdbot .off{margin-left:auto;border:1px solid var(--orange);color:var(--orange);border-radius:4px;padding:1px 6px;display:none}
+.lcdbot .off.show{display:block}
+.kitbtns{display:flex;justify-content:space-around;margin-top:9px;align-items:center}
+.kb{display:flex;align-items:center;gap:7px;font-size:10px;color:#e8ebf0;font-weight:600}
+.led{width:22px;height:22px;border-radius:50%;background:radial-gradient(circle at 40% 35%,#ff9b94,#a1110b 60%,#3b0503);box-shadow:0 0 0 3px #2a2d33}
+.led.off{background:radial-gradient(circle at 40% 35%,#7b5552,#3a1614 60%,#1e0908)}
+.led.blink{animation:ledb .5s step-end infinite;box-shadow:0 0 0 3px #2a2d33,0 0 14px #ff3b30}
+@keyframes ledb{50%{background:radial-gradient(circle at 40% 35%,#7b5552,#3a1614 60%,#1e0908);box-shadow:0 0 0 3px #2a2d33}}
+.pwr{width:22px;height:22px;border-radius:50%;background:#2a2d33;border:2px solid #9aa3ae;display:flex;align-items:center;justify-content:center;font-size:11px;color:#8ee3ff}
+.usb{width:18px;height:18px;border-radius:50%;background:#c9ced6;border:3px solid #454a52}
+
+/* PIPELINE */
+.pipe{padding:8px 12px 4px;display:flex;flex-direction:column;gap:6px}
+.st4{display:grid;grid-template-columns:28px 1fr;gap:9px;background:#0b1633;border:1px solid var(--line);border-radius:9px;padding:7px 9px;position:relative}
+.st4 .n{width:28px;height:28px;border-radius:7px;background:#12306a;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px}
+.st4 h4{font-size:12.5px;display:flex;align-items:center;gap:7px}
+.st4 p{font-size:11px;color:#b8c4dc;margin-top:2px;line-height:1.35}
+.st4.ok{border-color:#22c55e44} .st4.ok .n{background:#11563a}
+.st4.warn{border-color:#f07c1e88} .st4.warn .n{background:#7a3a0a}
+.st4.flow{border-color:var(--teal)} .st4.flow .n{background:#0b6b61}
+.bufbar{height:6px;background:#0a1430;border-radius:3px;overflow:hidden;margin-top:4px}
+.bufbar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--orange),#ffb36b);transition:width .3s}
+.frame{font-size:10.5px;color:var(--teal)}
+
+/* LOG */
+.log{flex:1;overflow:hidden;padding:6px 12px 8px;font-size:11px;min-height:90px}
+.log div{padding:3px 0;border-bottom:1px solid #15244a;display:flex;gap:8px}
+.log div span:first-child{color:var(--dim);flex-shrink:0}
+.log .a{color:#ffb36b} .log .e{color:#ff8a84} .log .s{color:#7ee7da} .log .i{color:#c9d4ea}
+
+footer{display:flex;justify-content:space-between;gap:12px;padding:6px 18px 8px;font-size:10.5px;color:var(--dim);border-top:1px solid var(--line)}
+footer b{color:var(--mut)}
+
+@media (max-width:1250px){
+  main{grid-template-columns:1fr 1fr}
+  .col.r{grid-column:1 / -1;display:grid;grid-template-columns:1fr 1fr}
+  .col .card{flex:none!important}
+  html,body{height:auto}
+  main{flex:none}
+  .cvwrap{min-height:300px}
+  .hullwrap{min-height:520px}
+  .log{min-height:200px}
+}
+@media (max-width:820px){
+  .cvwrap{min-height:240px}
+  .hullwrap{min-height:760px}
+  .hull-in{grid-template-columns:repeat(2,1fr);grid-template-rows:repeat(4,1fr);padding:40px 8%!important}
+  .hull,.hull-in{clip-path:polygon(18% 0,82% 0,100% 7%,100% 93%,82% 100%,18% 100%,0 93%,0 7%)}
+  .cloudtop{flex-wrap:wrap}
+  .cloudtop .who{margin-left:0}
+}
+@media (max-width:820px){
+  main{grid-template-columns:1fr;padding:10px}
+  .col.r{display:flex}
+  .chips{margin-left:0}
+  header{flex-wrap:wrap}
+  .phasebar{flex-wrap:wrap}
+  .ph{flex:1 1 30%}
+  .hull-in{padding:12px 6%}
+  .kpis{grid-template-columns:1fr 1fr}
+  footer{flex-direction:column}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <svg width="40" height="34" viewBox="0 0 40 34" aria-hidden="true">
+      <path d="M4 9c6-7 12-7 17-2s10 5 15-1c-2 7-8 10-14 6S10 5 4 9z" fill="#16c2b0"/>
+      <path d="M4 19c6-7 12-7 17-2s10 5 15-1c-2 7-8 10-14 6S10 15 4 19z" fill="#2f80d0"/>
+      <path d="M8 27c5-5 10-5 14-1s8 3 12-1c-2 5-7 8-12 5S12 24 8 27z" fill="#1c5fa8"/>
+    </svg>
+    <div><b>Navesync</b><small>Monitoramento Cloud Fluvial</small></div>
+  </div>
+  <div class="sel"><label>Selecionar balsa</label><div>navetrans17</div></div>
+  <div class="chips">
+    <div class="chip"><span class="dot" id="c-radar"></span>Radar RS-485 · 8/8</div>
+    <div class="chip"><span class="dot" id="c-kit"></span>Kit de borda</div>
+    <div class="chip"><span class="dot" id="c-link"></span><span id="t-link">4G</span></div>
+    <div class="chip"><span class="dot b" id="c-buf"></span>Buffer: <b class="mono" id="t-buf">0</b></div>
+    <div class="chip"><span class="dot" id="c-cloud"></span><span id="t-cloud">Nuvem sincronizada</span></div>
+  </div>
+  <div class="clock"><span>Tempo de viagem</span><b class="mono" id="clk">T+00:00</b></div>
+</header>
+
+<div class="phasebar">
+  <div class="ph" data-i="0"><i></i><span>1 · Terminal Manaus — leitura real</span></div>
+  <div class="ph" data-i="1"><i></i><span>2 · Navegação com 4G</span></div>
+  <div class="ph" data-i="2"><i></i><span>3 · Zona sem cobertura</span></div>
+  <div class="ph" data-i="3"><i></i><span>4 · Reconexão e envio do buffer</span></div>
+  <div class="ph" data-i="4"><i></i><span>5 · Chegada a Coari</span></div>
+  <div class="ph" data-i="5"><i></i><span>6 · Descarga em Coari</span></div>
+  <div class="ctl">
+    <button id="b-play" class="act">❚❚ Pausar</button>
+    <button id="b-spd">1×</button>
+    <button id="b-rst">↺ Reiniciar</button>
+  </div>
+</div>
+
+<main>
+  <!-- ESQUERDA -->
+  <div class="col">
+    <div class="card" style="flex:1.45">
+      <h3><span>Embarcação · navetrans17</span><span class="tag t" id="tag-scene">Atracada</span></h3>
+      <div class="cvwrap"><canvas id="cv-scene"></canvas></div>
+    </div>
+    <div class="card" style="flex:1">
+      <h3><span>Rota e cobertura de rede</span><span class="tag g" id="tag-map">4G</span></h3>
+      <div class="cvwrap"><canvas id="cv-map"></canvas></div>
+    </div>
+  </div>
+
+  <!-- CENTRO -->
+  <div class="col">
+    <div class="card" style="flex:1">
+      <div class="cloudtop">
+        <span class="logo">NAVESYNC</span><span class="btn-g">Dashboard</span>
+        <span style="font-size:11px;color:var(--mut)">Passo 4 · Visão Cloud — o que o gestor vê no escritório</span>
+        <span class="who" id="cloud-age">Atualizado agora</span>
+      </div>
+      <div class="hullwrap" id="hullwrap">
+        <div class="hull"><div class="hull-in" id="grid-cloud"></div></div>
+        <div class="stale"><div><b>Sem comunicação com a embarcação</b><span id="stale-txt">Exibindo último dado recebido</span></div></div>
+      </div>
+      <div class="kpis">
+        <div class="kpi"><small>Volume a bordo</small><b class="mono" id="k-vol">—</b> <em>L</em></div>
+        <div class="kpi"><small>Volume corrigido a 20 °C</small><b class="mono" id="k-v20">—</b> <em>L</em></div>
+        <div class="kpi"><small>Ocupação da balsa</small><b class="mono" id="k-occ">—</b> <em id="k-cap">de 4,55 mi L</em></div>
+        <div class="kpi"><small>Descarregado na viagem</small><b class="mono" id="k-desc">0</b> <em>L</em></div>
+      </div>
+      <div class="trend"><canvas id="cv-trend"></canvas></div>
+    </div>
+  </div>
+
+  <!-- DIREITA -->
+  <div class="col r">
+    <div class="card">
+      <h3><span>Passo 2 · Kit NaveSync na cabine</span><span class="tag g" id="tag-kit">Operando</span></h3>
+      <div class="kit">
+        <div class="lcd">
+          <div class="lcdtop"><b>NAVESYNC</b><span class="btn-g" style="font-size:8.5px;padding:1px 5px">Dashboard</span><span class="st mono" id="lcd-st">● 4G</span></div>
+          <div class="lgrid" id="grid-kit"></div>
+          <div class="lcdbot"><span style="color:#8a9bbd">⚙ Configuração</span><span class="off" id="lcd-off">DESCONECTADO (OFFLINE)</span></div>
+        </div>
+        <div class="kitbtns">
+          <div class="kb"><div class="led off" id="led"></div>SIRENE</div>
+          <div class="kb"><div class="pwr">⏻</div>ON/OFF</div>
+          <div class="kb"><div class="usb"></div>USB 1</div>
+          <div class="kb"><div class="usb"></div>USB 2</div>
+        </div>
+      </div>
+    </div>
+    <div class="card" style="flex:1">
+      <h3><span>Arquitetura em 4 passos · ao vivo</span><span class="tag t">Borda → Nuvem</span></h3>
+      <div class="pipe">
+        <div class="st4 ok" id="p1"><div class="n">1</div><div><h4>Leitura física · radar sem contato</h4><p id="p1t">—</p><p class="frame mono" id="p1f">—</p></div></div>
+        <div class="st4 ok" id="p2"><div class="n">2</div><div><h4>Cálculo na borda · arqueação + temperatura</h4><p id="p2t">—</p></div></div>
+        <div class="st4 ok" id="p3"><div class="n">3</div><div><h4>Buffer inteligente</h4><p id="p3t">—</p><div class="bufbar"><i id="bufbar"></i></div></div></div>
+        <div class="st4 ok" id="p4"><div class="n">4</div><div><h4>Nuvem segura · HTTPS / WebSocket</h4><p id="p4t">—</p></div></div>
+      </div>
+      <h3 style="border-top:1px solid var(--line)"><span>Eventos</span><span class="tag t">registro da viagem</span></h3>
+      <div class="log mono" id="log"></div>
+    </div>
+  </div>
+</main>
+
+<footer>
+  <span><b>Dados de partida:</b> níveis e volumes lidos da navetrans17 · curva nível→volume derivada das leituras reais (capacidade ≈ 569.300 L por tanque) · rota, tempos e eventos: cenário demonstrativo.</span>
+  <span><b>NaveSync</b> · Simulador técnico — Iderlan Freitas, Engenheiro Eletricista</span>
+</footer>
+
+<script>
+/* ============ DADOS REAIS ============ */
+// Pares nível (cm) × volume (L) lidos nos painéis da navetrans17. Os 8 tanques seguem a mesma curva.
+const ARQ=[[0,0],[10.8,5765],[41.9,31552],[64.9,53232],[94.6,83947],[112.1,103087],[207.2,214652],[256.6,273638],[303.6,329770],[318.6,347688],[324.4,354617],[342.4,376121],[422.6,471965],[446.6,500654],[451.8,506871],[460.2,516914],[491.6,554459],[504.0,569300]];
+const CAP=569300, HMAX=504.0, HREF=540.0; // HREF: distância flange do radar → fundo (referência de montagem, demonstrativa)
+const TOTAL_CAP=CAP*8;
+function arq(h){h=Math.max(0,Math.min(HMAX,h));for(let i=1;i<ARQ.length;i++){if(h<=ARQ[i][0]){const[a,b]=[ARQ[i-1],ARQ[i]];return a[1]+(b[1]-a[1])*(h-a[0])/(b[0]-a[0]);}}return CAP;}
+function inv(v){v=Math.max(0,Math.min(CAP,v));for(let i=1;i<ARQ.length;i++){if(v<=ARQ[i][1]){const[a,b]=[ARQ[i-1],ARQ[i]];return a[0]+(b[0]-a[0])*(v-a[1])/(b[1]-a[1]);}}return HMAX;}
+// Fator de correção de volume a 20 °C (forma das tabelas ASTM D1250, coeficiente típico de destilados)
+const ALPHA=0.00083;
+function vcf(T){const d=T-20;return Math.exp(-ALPHA*d*(1+0.8*ALPHA*d));}
+
+const NAMES=['TQ 04 BB','TQ 03 BB','TQ 02 BB','TQ 01 BB','TQ 04 BE','TQ 03 BE','TQ 02 BE','TQ 01 BE'];
+const H0=[451.8,342.4,112.1,491.6,207.2,318.6,446.6,94.6]; // leitura real
+const T0=[29.2,29.0,28.8,29.4,29.1,28.9,29.3,28.7];
+const HI=90, LO=10;
+
+/* ============ CENÁRIO ============ */
+const PH=[
+  {n:'Terminal Manaus — leitura real',d:14,link:'4G',p0:0,p1:0,rate:4,dock:'Manaus'},
+  {n:'Navegação com 4G',d:12,link:'4G',p0:0,p1:.28,rate:40},
+  {n:'Zona sem cobertura',d:28,link:'OFF',p0:.28,p1:.66,rate:45},
+  {n:'Reconexão e envio do buffer',d:9,link:'SYNC',p0:.66,p1:.72,rate:30},
+  {n:'Chegada a Coari',d:9,link:'4G',p0:.72,p1:1,rate:40},
+  {n:'Descarga em Coari',d:28,link:'4G',p0:1,p1:1,rate:5,dock:'Coari'},
+];
+const PT=[];let acc=0;PH.forEach(p=>{PT.push(acc);acc+=p.d;});const LOOP=acc+4;
+const ROUTE=[{n:'Manaus',lat:-3.10,lon:-60.02,p:0},{n:'Manacapuru',lat:-3.30,lon:-60.61,p:.2},{n:'Codajás',lat:-3.84,lon:-62.09,p:.7},{n:'Coari',lat:-4.08,lon:-63.13,p:1}];
+
+/* ============ ESTADO ============ */
+let S;
+function reset(){
+  S={t:0,sim:0,pos:0,ph:0,phPrev:-1,
+     v20:H0.map((h,i)=>arq(h)*vcf(T0[i])),temp:T0.slice(),
+     cloud:null,cloudAt:0,buf:0,bufMax:0,queuedAlerts:[],
+     desc:0,trend:[],lastSample:-1,ackHi:false,ackEv:true,evActive:false,evDone:false,evLoss:0,flushDone:false,log:[],radarIdx:0,
+     dischargeStart:null};
+  addLog('i','Kit NaveSync ligado · 8 radares respondendo no barramento RS-485');
+  S.cloud=snapshot();S.cloudAt=0;
+}
+function levels(){return S.v20.map((v,i)=>{const vo=v/vcf(S.temp[i]);return{vo,h:inv(vo),pct:vo/CAP*100};});}
+function snapshot(){return levels().map(x=>({...x}));}
+function hhmm(m){m=Math.max(0,Math.round(m));return String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0');}
+function addLog(c,msg,simT){S.log.unshift({c,msg,t:simT===undefined?S.sim:simT});if(S.log.length>40)S.log.pop();}
+const fmt=(v,d=0)=>v.toLocaleString('pt-BR',{minimumFractionDigits:d,maximumFractionDigits:d});
+
+let paused=false,speed=1,last=null;
+reset();
+
+/* ============ SIMULAÇÃO ============ */
+function step(dt){
+  S.t+=dt;
+  if(S.t>=LOOP){reset();return;}
+  let ph=0;for(let i=0;i<PH.length;i++){if(S.t>=PT[i])ph=i;}
+  const P=PH[Math.min(ph,PH.length-1)];
+  const inPh=Math.min(1,(S.t-PT[ph])/P.d);
+  if(S.t<acc){S.ph=ph;S.pos=P.p0+(P.p1-P.p0)*inPh;S.sim+=dt*P.rate;}
+  else{S.ph=PH.length;} // resumo
+  const link=S.t<acc?P.link:'4G';S.link=link;
+
+  // temperatura: ciclo diário simulado (produto acompanha lentamente o ambiente)
+  const hod=(6*60+S.sim)%1440/60;const amb=27+5*Math.sin((hod-9)/24*2*Math.PI);
+  if(S.ph>=1)S.temp=S.temp.map((T,i)=>T+(amb+1.5+(i%3)*.3-T)*Math.min(1,dt*.03));
+
+  // entrada de fase
+  if(S.ph!==S.phPrev){
+    S.phPrev=S.ph;
+    if(S.ph===0){}
+    if(S.ph===1)addLog('i','Desatracação · início da navegação rumo a Coari');
+    if(S.ph===2){addLog('a','Cobertura 4G perdida · kit segue medindo e gravando no banco local');}
+    if(S.ph===3){addLog('s','Sinal restabelecido · enviando buffer com '+fmt(S.buf)+' registros');S.bufMax=Math.max(S.buf,1);}
+    if(S.ph===4)addLog('i','Navegação final com 4G · dados em tempo real');
+    if(S.ph===5){addLog('i','Atracado em Coari · início da descarga TQ 04 BB e TQ 02 BE');S.dischargeStart=S.v20.slice();}
+    if(S.ph===6)addLog('s','Viagem concluída · histórico completo na nuvem, sem lacunas');
+  }
+
+  // Fase 1: alarme real — TQ 01 BB acima de 90%
+  if(S.ph===0&&!S.hiLogged&&S.t>1.5){S.hiLogged=true;addLog('e','Nível alto TQ 01 BB · '+fmt(levels()[3].pct,1)+' % (limite 90 %) · sirene acionada');}
+  if(S.ph===0&&!S.ackHi&&S.t>6){S.ackHi=true;addLog('i','Alarme TQ 01 BB reconhecido pela tripulação no kit');}
+
+  // Fase 3: variação não programada TQ 02 BB durante navegação offline
+  if(S.ph===2){
+    const e0=PT[2]+9,e1=PT[2]+15;
+    if(S.t>e0&&S.t<e1){
+      if(!S.evActive){S.evActive=true;S.ackEv=false;S.evSim=S.sim;addLog('e','Variação não programada TQ 02 BB em navegação · alerta gerado a bordo');S.queuedAlerts.push({t:S.sim});}
+      const d=2400*dt/(e1-e0);S.v20[2]-=d;S.evLoss+=d;
+    }
+    if(S.t>=e1&&S.evActive&&!S.evDone){S.evDone=true;addLog('a','TQ 02 BB estabilizado · perda registrada: '+fmt(S.evLoss)+' L @20 °C');}
+    if(S.t>e1+4&&!S.ackEv){S.ackEv=true;addLog('i','Tripulação reconheceu o alerta no kit (sem internet)');}
+  }
+
+  // Fase 6: descarga
+  if(S.ph===5){
+    const q=[0,6];const rate=[19000,18500]; // L/s de simulação (vazão exagerada para a demo)
+    q.forEach((k,j)=>{const alvo=S.dischargeStart[k]*0.04;const d=Math.min(rate[j]*dt,Math.max(0,S.v20[k]-alvo));S.v20[k]-=d;S.desc+=d/vcf(S.temp[k]);});
+  }
+
+  // amostragem: 1 registro por tanque a cada 2 min simulados
+  const L=levels();
+  const samples=Math.floor(S.sim/2)-Math.floor((S.sim-dt*(S.t<acc?P.rate:4))/2);
+  if(link==='OFF'){S.buf+=Math.max(0,samples)*8;}
+  if(link==='SYNC'&&S.buf>0){
+    const tot=PH[3].d*0.8;const d=S.bufMax/tot*dt;S.buf=Math.max(0,S.buf-d);
+    if(S.buf===0&&!S.flushDone){S.flushDone=true;
+      S.trend.forEach(p=>{if(!p.recv){p.recv=true;p.back=true;}});
+      S.queuedAlerts.forEach(a=>addLog('s','Nuvem recebeu alerta gerado offline às T+'+hhmm(a.t)+' · carimbo de tempo original'));
+      S.queuedAlerts=[];addLog('s','Buffer vazio · nuvem 100% sincronizada');}
+  }
+  const online=(link==='4G')||(link==='SYNC'&&S.flushDone);
+  if(online){S.cloud=L.map(x=>({...x}));S.cloudAt=S.sim;}
+
+  // tendência
+  const tk=Math.floor(S.sim/10);
+  if(tk!==S.lastSample){S.lastSample=tk;
+    const vo=L.reduce((a,b)=>a+b.vo,0);
+    S.trend.push({t:S.sim,v:vo,recv:online,back:false,off:link==='OFF'||(link==='SYNC'&&!S.flushDone)});}
+  S.L=L;
+}
+
+/* ============ UI ============ */
+const $=id=>document.getElementById(id);
+function buildGrids(){
+  $('grid-cloud').innerHTML=NAMES.map((n,i)=>`<div class="tk" id="c${i}"><div class="nm">${n.replace('TQ','Tanque')}</div><div class="cm mono"></div><div class="lt mono"></div><div class="fill"></div><div class="pc mono"></div></div>`).join('');
+  $('grid-kit').innerHTML=NAMES.map((n,i)=>`<div class="lt2" id="k${i}"><b>${n.replace('TQ','Tanque')}</b><span class="mono a"></span><br><span class="mono b"></span><div class="f mono"></div></div>`).join('');
+}
+buildGrids();
+function cls(p){return p>=HI?'hi':p<=LO?'low':'';}
+
+function render(){
+  const L=S.L||levels();const link=S.link||'4G';
+  // header
+  $('clk').textContent='T+'+hhmm(S.sim);
+  const linkTxt={'4G':'Link 4G','OFF':'Sem cobertura','SYNC':'Satélite/4G · sincronizando'}[link];
+  $('t-link').textContent=linkTxt;
+  $('c-link').className='dot'+(link==='OFF'?' r':link==='SYNC'?' b':'');
+  $('t-buf').textContent=fmt(Math.round(S.buf));
+  $('c-buf').className='dot'+(S.buf>0?' w':' b');
+  const online=link==='4G'||(link==='SYNC'&&S.flushDone);
+  $('t-cloud').textContent=online?'Nuvem sincronizada':link==='SYNC'?'Recebendo histórico':'Nuvem aguardando';
+  $('c-cloud').className='dot'+(online?'':' w');
+
+  // phase bar
+  document.querySelectorAll('.ph').forEach((el,i)=>{
+    el.classList.toggle('on',i===S.ph);el.classList.toggle('done',i<S.ph);
+    const p=i<S.ph?1:i===S.ph?Math.min(1,(S.t-PT[i])/PH[i].d):0;el.querySelector('i').style.width=(p*100)+'%';
+  });
+
+  // cloud grid
+  const C=S.cloud;
+  C.forEach((x,i)=>{const el=$('c'+i);el.className='tk '+cls(x.pct)+(i===2&&S.evActive&&online&&S.flushDone&&S.ph<=4?' ev':'');
+    el.querySelector('.cm').textContent=fmt(x.h,1)+' cm';el.querySelector('.lt').textContent=fmt(Math.round(x.vo))+' L';
+    el.querySelector('.fill').style.height='calc((100% - 64px) * '+(Math.max(0,Math.min(100,x.pct))/100).toFixed(4)+')';el.querySelector('.pc').textContent=fmt(x.pct,1)+'%';});
+  $('hullwrap').classList.toggle('off',!online);
+  $('stale-txt').textContent='Último dado recebido: T+'+hhmm(S.cloudAt)+' · há '+hhmm(S.sim-S.cloudAt)+' h';
+  $('cloud-age').textContent=online?'Atualizado agora':'Sem atualização há '+hhmm(S.sim-S.cloudAt);
+  const vo=C.reduce((a,b)=>a+b.vo,0);const v20=online?S.v20.reduce((a,b)=>a+b,0):null;
+  $('k-vol').textContent=fmt(Math.round(vo));
+  $('k-v20').textContent=v20===null?'—':fmt(Math.round(v20));
+  $('k-occ').textContent=fmt(vo/TOTAL_CAP*100,1)+' %';
+  $('k-desc').textContent=fmt(Math.round(S.desc));
+
+  // kit (sempre ao vivo)
+  L.forEach((x,i)=>{const el=$('k'+i);el.className='lt2 '+cls(x.pct);
+    el.querySelector('.a').textContent=fmt(x.h,1)+' cm';el.querySelector('.b').textContent=fmt(Math.round(x.vo))+' L';el.querySelector('.f').textContent=fmt(x.pct,1)+'%';});
+  $('lcd-st').textContent=link==='OFF'?'✕ sem rede':link==='SYNC'?'⇅ sincronizando':'● 4G';
+  $('lcd-st').style.color=link==='OFF'?'#f07c1e':link==='SYNC'?'#16c2b0':'#22c55e';
+  $('lcd-off').classList.toggle('show',link==='OFF');
+  const alarm=L.some(x=>x.pct>=HI)||S.evActive&&!S.evDone;
+  const led=$('led');const blink=(S.ph===0&&!S.ackHi&&S.t>1.5)||(!S.ackEv);
+  led.className='led'+(blink?' blink':alarm?'':' off');
+  $('tag-kit').textContent=link==='OFF'?'Operando offline':'Operando';$('tag-kit').className='tag '+(link==='OFF'?'o':'g');
+
+  // pipeline
+  const r=S.radarIdx;const x=L[r];const d=Math.round((HREF-x.h)*10);
+  $('p1t').textContent=NAMES[r]+' · distância '+fmt(d)+' mm → nível '+fmt(x.h,1)+' cm';
+  $('p1f').textContent='RS-485 · escravo '+String(r+1).padStart(2,'0')+' · '+mbFrame(r+1,3,0,2);
+  $('p2t').textContent=fmt(x.h,1)+' cm → '+fmt(Math.round(x.vo))+' L · '+fmt(S.temp[r],1)+' °C · VCF '+vcf(S.temp[r]).toFixed(4)+' → '+fmt(Math.round(S.v20[r]))+' L @20 °C';
+  $('p3').className='st4 '+(link==='OFF'?'warn':link==='SYNC'?'flow':'ok');
+  $('p3t').textContent=link==='OFF'?'Gravando no banco local · '+fmt(Math.round(S.buf))+' registros pendentes':link==='SYNC'?'Enviando histórico em lote · restam '+fmt(Math.round(S.buf)):'Fila vazia · envio contínuo';
+  $('bufbar').style.width=Math.min(100,S.buf/Math.max(S.bufMax,5100)*100)+'%';
+  $('p4').className='st4 '+(link==='OFF'?'warn':link==='SYNC'&&!S.flushDone?'flow':'ok');
+  $('p4t').textContent=link==='OFF'?'Aguardando rede · painel do escritório mostra o último dado':link==='SYNC'&&!S.flushDone?'Recebendo lote criptografado · reconstruindo histórico':'Tempo real · último envio T+'+hhmm(S.cloudAt);
+
+  // tags
+  $('tag-scene').textContent=S.ph===0||S.ph>=5?(S.ph>=5?'Atracada · Coari':'Atracada · Manaus'):'Navegando · '+fmt(link==='OFF'?11.8:12.4,1)+' km/h';
+  const tm=$('tag-map');tm.textContent=link==='OFF'?'Sem cobertura':link==='SYNC'?'Reconectando':'4G';tm.className='tag '+(link==='OFF'?'r':link==='SYNC'?'t':'g');
+
+  // log
+  $('log').innerHTML=S.log.slice(0,9).map(e=>`<div class="${e.c}"><span>T+${hhmm(e.t)}</span><span>${e.msg}</span></div>`).join('');
+}
+
+/* ============ CRC16 MODBUS ============ */
+function crc16(a){let c=0xFFFF;for(const b of a){c^=b;for(let j=0;j<8;j++)c=(c&1)?(c>>1)^0xA001:(c>>1);}return c;}
+function mbFrame(id,fn,reg,n){const d=[id,fn,reg>>8,reg&255,n>>8,n&255];const c=crc16(d);return d.concat([c&255,c>>8]).map(b=>b.toString(16).toUpperCase().padStart(2,'0')).join(' ');}
+
+/* ============ CANVAS HELPERS ============ */
+function fit(cv){const r=cv.parentElement.getBoundingClientRect();const dpr=window.devicePixelRatio||1;const w=Math.max(10,r.width),h=Math.max(10,r.height);
+  if(cv.width!==Math.round(w*dpr)||cv.height!==Math.round(h*dpr)){cv.width=Math.round(w*dpr);cv.height=Math.round(h*dpr);}
+  const ctx=cv.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);return{ctx,W:w,H:h};}
+function rr(c,x,y,w,h,r){r=Math.min(r,w/2,h/2);c.beginPath();c.moveTo(x+r,y);c.arcTo(x+w,y,x+w,y+h,r);c.arcTo(x+w,y+h,x,y+h,r);c.arcTo(x,y+h,x,y,r);c.arcTo(x,y,x+w,y,r);c.closePath();}
+
+/* ============ CENA ============ */
+let scroll=0,anim=0;
+function drawScene(){
+  const{ctx:c,W,H}=fit($('cv-scene'));const L=S.L||levels();const link=S.link||'4G';
+  const moving=S.ph>=1&&S.ph<=4;
+  const sky=H*.42;
+  let g=c.createLinearGradient(0,0,0,sky);g.addColorStop(0,'#2d6fb8');g.addColorStop(1,'#a9cde8');c.fillStyle=g;c.fillRect(0,0,W,sky);
+  // nuvens
+  for(let i=0;i<4;i++){const x=((i*W*.33-scroll*.15)%(W+160)+W+160)%(W+160)-80,y=sky*(.18+.14*(i%3));c.fillStyle='rgba(255,255,255,.75)';
+    [[0,0,18],[18,-7,15],[34,1,17],[16,6,14]].forEach(([dx,dy,r])=>{c.beginPath();c.arc(x+dx,y+dy,r,0,7);c.fill();});}
+  // floresta
+  c.fillStyle='#1f5a2e';c.beginPath();c.moveTo(0,sky);
+  for(let x=0;x<=W;x+=5){const k=x+scroll*.35;c.lineTo(x,sky-10-7*Math.abs(Math.sin(k*.021))-5*Math.abs(Math.sin(k*.057)));}c.lineTo(W,sky);c.fill();
+  c.fillStyle='#174a24';c.fillRect(0,sky-3,W,5);
+  // rio
+  g=c.createLinearGradient(0,sky,0,H);g.addColorStop(0,'#8b7355');g.addColorStop(.35,'#6d5a44');g.addColorStop(1,'#4c3f31');c.fillStyle=g;c.fillRect(0,sky,W,H-sky);
+  c.strokeStyle='rgba(255,240,210,.14)';c.lineWidth=1;
+  for(let r=0;r<7;r++){const y=sky+14+r*(H-sky)/7;c.beginPath();for(let x=0;x<=W;x+=4){const yy=y+Math.sin((x+scroll*(1+r*.2))*.03+r)*2;x?c.lineTo(x,yy):c.moveTo(x,yy);}c.stroke();}
+
+  // torre 4G perto de cidades / satélite
+  const nearCity=ROUTE.some(p=>Math.abs(S.pos-p.p)<.09);
+  if(link!=='OFF'&&(nearCity||S.ph===0||S.ph>=4)){
+    const tx=W*.07,ty=sky-6;c.strokeStyle='#cfd6de';c.lineWidth=2;
+    c.beginPath();c.moveTo(tx-9,ty);c.lineTo(tx,ty-58);c.lineTo(tx+9,ty);c.stroke();
+    for(let k=1;k<4;k++){c.beginPath();c.moveTo(tx-9+k*2.6,ty-k*14);c.lineTo(tx+9-k*2.6,ty-k*14);c.stroke();}
+    c.fillStyle='#e0413a';c.beginPath();c.arc(tx,ty-60,3,0,7);c.fill();
+    c.fillStyle='#fff';c.font='bold 11px Inter,Arial';c.fillText('4G',tx-8,ty-68);
+  }
+  if(link==='SYNC'){const sx=W*.2,sy=sky*.25;c.fillStyle='#dde3ea';c.fillRect(sx-5,sy-5,10,10);c.fillStyle='#2f80d0';c.fillRect(sx-24,sy-3,16,6);c.fillRect(sx+8,sy-3,16,6);}
+
+  // píer nos atracamentos
+  const dock=S.ph===0||S.ph>=5;
+  if(dock){c.fillStyle='#6b6f75';c.fillRect(0,sky+(H-sky)*.52,W,10);c.fillStyle='#4b4f55';for(let x=10;x<W;x+=46)c.fillRect(x,sky+(H-sky)*.52+10,6,30);}
+
+  if(moving)scroll+=1.4*speed;
+
+  // BALSA
+  const wl=sky+(H-sky)*.42;const bob=Math.sin(anim*1.3)*1.2;
+  c.save();c.translate(0,bob);
+  const cx=W*.04,cw=W*.66,chH=(H-sky)*.34,cy=wl-chH*.55;
+  // casco chata
+  c.fillStyle='#23324d';c.beginPath();c.moveTo(cx+22,cy);c.lineTo(cx+cw,cy);c.lineTo(cx+cw,cy+chH);c.lineTo(cx+6,cy+chH);c.lineTo(cx,cy+chH*.35);c.closePath();c.fill();
+  c.fillStyle='#b3262a';c.fillRect(cx+6,wl+2,cw-6,chH*.18);
+  c.fillStyle='#e8ecf2';c.font='bold '+Math.max(9,W*.018)+'px Inter,Arial';c.fillText('NAVETRANS17',cx+cw*.62,cy+chH*.72);
+  // compartimentos em corte (BB)
+  const tw=(cw-40)/4;
+  for(let i=0;i<4;i++){
+    const x=cx+26+i*tw,y=cy+6,w=tw-8,h=chH*.52;const lv=L[i];
+    c.fillStyle='#0d1629';rr(c,x,y,w,h,3);c.fill();
+    const f=Math.min(1,lv.h/HMAX);c.save();rr(c,x,y,w,h,3);c.clip();
+    c.fillStyle=lv.pct>=HI?'#b3262a':'#e0a800';const fy=y+h*(1-f);c.fillRect(x,fy,w,h*f+1);
+    c.fillStyle='rgba(255,255,255,.25)';c.fillRect(x,fy,w,1.5);
+    // feixe do radar
+    const a=.22+.14*Math.sin(anim*4+i);c.fillStyle=`rgba(255,170,90,${a})`;c.beginPath();c.moveTo(x+w/2-2,y);c.lineTo(x+w/2+2,y);c.lineTo(x+w/2+w*.16,fy);c.lineTo(x+w/2-w*.16,fy);c.closePath();c.fill();
+    c.restore();
+    c.strokeStyle='#3b5387';c.lineWidth=1;rr(c,x,y,w,h,3);c.stroke();
+    // sensor radar no convés
+    c.fillStyle='#9aa4b1';c.fillRect(x+w/2-6,cy-12,12,10);c.fillStyle='#222';c.fillRect(x+w/2-7,cy-14,14,3);c.fillStyle='#4b5563';c.fillRect(x+w/2-8,cy-2,16,3);
+    c.fillStyle='#fff';c.font='bold 10px Inter,Arial';c.fillText(NAMES[i].replace('TQ ',''),x+3,y+12);
+    c.font='10px Consolas,monospace';c.fillText(fmt(lv.pct,0)+'%',x+3,y+24);
+  }
+  // cabo RS-485 no convés até o empurrador
+  c.strokeStyle='#f07c1e';c.lineWidth=1.5;c.setLineDash([4,3]);c.lineDashOffset=-anim*20;
+  c.beginPath();c.moveTo(cx+26+tw/2,cy-6);c.lineTo(cx+cw+W*.06,cy-6);c.stroke();c.setLineDash([]);
+  c.fillStyle='#f07c1e';c.font='bold 9px Inter,Arial';c.fillText('RS-485',cx+cw-44,cy-10);
+
+  // EMPURRADOR
+  const ex=cx+cw+2,ew=W*.26,eh=chH*1.05,ey=wl-eh*.55;
+  c.fillStyle='#e9edf2';c.beginPath();c.moveTo(ex,ey);c.lineTo(ex+ew*.9,ey);c.quadraticCurveTo(ex+ew,ey+eh*.4,ex+ew*.88,ey+eh);c.lineTo(ex,ey+eh);c.closePath();c.fill();
+  c.fillStyle='#1f2f55';c.fillRect(ex,ey+eh*.55,ew*.92,eh*.45);
+  // cabine
+  const kx=ex+ew*.18,kw=ew*.6,kh=eh*.62,ky=ey-kh;
+  c.fillStyle='#f4f6f9';c.fillRect(kx,ky,kw,kh);c.fillStyle='#f4f6f9';c.fillRect(kx+kw*.12,ky-kh*.55,kw*.76,kh*.55);
+  c.fillStyle='#29405f';for(let i=0;i<4;i++)c.fillRect(kx+kw*.16+i*kw*.18,ky-kh*.42,kw*.13,kh*.2);
+  // kit na cabine (tela)
+  const glow=link==='OFF'?'#f07c1e':'#16c2b0';
+  c.fillStyle='#5d6470';c.fillRect(kx+kw*.1,ky+kh*.2,kw*.34,kh*.5);c.fillStyle='#0a1224';c.fillRect(kx+kw*.13,ky+kh*.26,kw*.28,kh*.28);
+  c.fillStyle=glow;for(let i=0;i<4;i++)c.fillRect(kx+kw*.145+i*kw*.066,ky+kh*.42,kw*.05,kh*.08);
+  c.fillStyle='#1f2f55';c.font='bold 9px Inter,Arial';c.fillText('KIT',kx+kw*.55,ky+kh*.48);
+  // mastro, antena
+  const mx=kx+kw*.7,my=ky-kh*.55;c.strokeStyle='#444c57';c.lineWidth=2;c.beginPath();c.moveTo(mx,my);c.lineTo(mx,my-34);c.stroke();
+  c.fillStyle='#fff';c.beginPath();c.arc(mx,my-38,5,0,7);c.fill();
+  if(link!=='OFF'){c.strokeStyle=glow;c.lineWidth=1.6;for(let k=1;k<=3;k++){const a=((anim*1.5+k*.33)%1);c.globalAlpha=1-a;c.beginPath();c.arc(mx,my-38,6+a*26,-2.4,-.7);c.stroke();}c.globalAlpha=1;}
+  else{c.fillStyle='#e0413a';rr(c,mx+8,my-54,70,16,4);c.fill();c.fillStyle='#fff';c.font='bold 9px Inter,Arial';c.fillText('SEM SINAL',mx+14,my-43);}
+  if(link==='SYNC'){c.strokeStyle='rgba(22,194,176,.8)';c.setLineDash([3,4]);c.beginPath();c.moveTo(mx,my-38);c.lineTo(W*.2,sky*.25);c.stroke();c.setLineDash([]);}
+  // chaminé e fumaça
+  c.fillStyle='#b3262a';c.fillRect(kx+kw*.82,ky-kh*.3,8,kh*.3);
+  for(let s=0;s<4;s++){const p=((s/4+anim*.2)%1);c.fillStyle=`rgba(90,90,90,${(1-p)*.25})`;c.beginPath();c.arc(kx+kw*.82+4+p*18,ky-kh*.3-p*30,3+p*7,0,7);c.fill();}
+  c.restore();
+
+  // esteira
+  if(moving){for(let s=0;s<10;s++){const p=((s/10+anim*.5)%1);c.fillStyle=`rgba(255,255,255,${(1-p)*.3})`;c.beginPath();c.ellipse(ex+ew+p*W*.1,wl+eh*.2,4+p*10,2,0,0,7);c.fill();}}
+
+  // mangote de descarga
+  if(S.ph===5){const hx=cx+26+tw-14,hy=cy-8;c.strokeStyle='#111';c.lineWidth=4;c.beginPath();c.moveTo(hx,hy);c.quadraticCurveTo(hx-20,hy-40,hx-30,sky+(H-sky)*.52);c.stroke();
+    c.fillStyle='#e0a800';for(let k=0;k<5;k++){const p=((k/5+anim*.8)%1);const t=p;const px=(1-t)*(1-t)*hx+2*(1-t)*t*(hx-20)+t*t*(hx-30);const py=(1-t)*(1-t)*hy+2*(1-t)*t*(hy-40)+t*t*(sky+(H-sky)*.52);c.beginPath();c.arc(px,py,2.2,0,7);c.fill();}}
+
+  // rodapé da cena
+  c.fillStyle='rgba(7,16,42,.72)';c.fillRect(0,H-26,W,26);
+  const pos=routePos();c.fillStyle='#e6edf7';c.font='11px Consolas,monospace';
+  c.fillText('Lat '+pos.lat.toFixed(3)+'°  Lon '+pos.lon.toFixed(3)+'°   ·   próximo: '+pos.next+'   ·   corte lateral: tanques BB',10,H-9);
+}
+function routePos(){const p=S.pos;for(let i=1;i<ROUTE.length;i++){if(p<=ROUTE[i].p){const a=ROUTE[i-1],b=ROUTE[i];const f=(p-a.p)/(b.p-a.p);return{lat:a.lat+(b.lat-a.lat)*f,lon:a.lon+(b.lon-a.lon)*f,next:b.n};}}const l=ROUTE[ROUTE.length-1];return{lat:l.lat,lon:l.lon,next:l.n};}
+
+/* ============ MAPA ============ */
+function drawMap(){
+  const{ctx:c,W,H}=fit($('cv-map'));c.fillStyle='#0a1633';c.fillRect(0,0,W,H);
+  const pad=34;const proj=(lat,lon)=>({x:pad+(W-2*pad)*(lon-(-60.0))/((-63.2)-(-60.0)),y:24+(H-58)*(lat-(-3.0))/((-4.2)-(-3.0))});
+  // grade
+  c.strokeStyle='#13244f';c.lineWidth=1;for(let i=1;i<6;i++){c.beginPath();c.moveTo(W*i/6,0);c.lineTo(W*i/6,H);c.stroke();}
+  // rota em trechos por cobertura
+  const N=120;let prev=null;
+  for(let k=0;k<=N;k++){const p=k/N;const sv=S.pos;S.pos=p;const q=routePos();S.pos=sv;const pt=proj(q.lat,q.lon);
+    if(prev){const off=p>.28&&p<.68;c.strokeStyle=off?'#e0413a':'#22c55e';c.globalAlpha=off?.55:.6;c.lineWidth=7;c.beginPath();c.moveTo(prev.x,prev.y);c.lineTo(pt.x,pt.y);c.stroke();c.globalAlpha=1;
+      c.strokeStyle='#3b6fb0';c.lineWidth=2;c.beginPath();c.moveTo(prev.x,prev.y);c.lineTo(pt.x,pt.y);c.stroke();}
+    prev=pt;}
+  // percorrido
+  c.strokeStyle='#16c2b0';c.lineWidth=3;c.beginPath();for(let k=0;k<=60;k++){const p=S.pos*k/60;const sv=S.pos;S.pos=p;const q=routePos();S.pos=sv;const pt=proj(q.lat,q.lon);k?c.lineTo(pt.x,pt.y):c.moveTo(pt.x,pt.y);}c.stroke();
+  ROUTE.forEach(r=>{const p=proj(r.lat,r.lon);c.fillStyle='#fff';c.beginPath();c.arc(p.x,p.y,4,0,7);c.fill();c.font='bold 11px Inter,Arial';c.fillStyle='#dfe7f5';c.fillText(r.n,p.x-18,p.y+(r.n==='Codajás'?-10:18));});
+  const q=routePos();const b=proj(q.lat,q.lon);
+  c.fillStyle='#f5b800';c.shadowColor='#f5b800';c.shadowBlur=10;c.beginPath();c.arc(b.x,b.y,6,0,7);c.fill();c.shadowBlur=0;
+  if(S.link==='OFF'){const a=(anim*2)%1;c.strokeStyle=`rgba(240,124,30,${1-a})`;c.lineWidth=2;c.beginPath();c.arc(b.x,b.y,6+a*16,0,7);c.stroke();}
+  // legenda
+  c.font='10.5px Inter,Arial';c.fillStyle='#22c55e';c.fillRect(10,H-18,12,5);c.fillStyle='#b9c6de';c.fillText('com cobertura',26,H-13);
+  c.fillStyle='#e0413a';c.fillRect(118,H-18,12,5);c.fillStyle='#b9c6de';c.fillText('sem cobertura (kit continua medindo)',134,H-13);
+}
+
+/* ============ TENDÊNCIA ============ */
+function drawTrend(){
+  const{ctx:c,W,H}=fit($('cv-trend'));c.fillStyle='#0b1633';c.fillRect(0,0,W,H);
+  const tr=S.trend;const x0=54,x1=W-12,y0=18,y1=H-22;
+  const tMax=Math.max(60*44,S.sim);const vals=tr.map(p=>p.v);if(!vals.length)return;const vmin=Math.min(...vals)*0.96,vmax=Math.max(...vals)*1.02;
+  const X=t=>x0+(x1-x0)*t/tMax,Y=v=>y1-(y1-y0)*(v-vmin)/(vmax-vmin);
+  c.font='10.5px Inter,Arial';c.fillStyle='#8a9bbd';c.fillText('Volume total a bordo recebido pela nuvem (L)',x0,12);
+  c.strokeStyle='#17295a';c.lineWidth=1;for(let i=0;i<=3;i++){const v=vmin+(vmax-vmin)*i/3;const y=Y(v);c.beginPath();c.moveTo(x0,y);c.lineTo(x1,y);c.stroke();c.fillStyle='#5a6c92';c.fillText((v/1e6).toFixed(2)+' mi',4,y+3);}
+  for(let h=0;h<=44;h+=8){const x=X(h*60);c.fillStyle='#5a6c92';c.fillText(h+'h',x-6,H-7);}
+  // janela offline
+  const off=tr.filter(p=>p.off);if(off.length){const a=X(off[0].t),b=X(off[off.length-1].t);c.fillStyle='rgba(224,65,58,.10)';c.fillRect(a,y0,b-a,y1-y0);c.fillStyle='#ff8a84';c.fillText('sem cobertura',a+4,y1-4);}
+  // série do kit (sempre completa)
+  c.strokeStyle='rgba(245,184,0,.35)';c.setLineDash([3,3]);c.lineWidth=1.3;c.beginPath();tr.forEach((p,i)=>{i?c.lineTo(X(p.t),Y(p.v)):c.moveTo(X(p.t),Y(p.v));});c.stroke();c.setLineDash([]);
+  // série recebida pela nuvem
+  c.lineWidth=2.4;let open=false;
+  for(let i=0;i<tr.length;i++){const p=tr[i];if(!p.recv){open=false;continue;}
+    if(i>0&&tr[i-1].recv){c.strokeStyle=(p.back||tr[i-1].back)?'#16c2b0':'#f5b800';c.beginPath();c.moveTo(X(tr[i-1].t),Y(tr[i-1].v));c.lineTo(X(p.t),Y(p.v));c.stroke();}}
+  if(tr.some(p=>p.back)){const pb=tr.filter(p=>p.back);const m=pb[Math.floor(pb.length/2)];c.fillStyle='#16c2b0';c.fillText('histórico recuperado do buffer',X(m.t)-70,Y(m.v)+16);}
+  // legenda
+  c.fillStyle='#f5b800';c.fillRect(W-250,6,14,3);c.fillStyle='#b9c6de';c.fillText('nuvem (tempo real)',W-232,11);
+  c.fillStyle='#16c2b0';c.fillRect(W-128,6,14,3);c.fillStyle='#b9c6de';c.fillText('enviado depois',W-110,11);
+}
+
+/* ============ LOOP ============ */
+let radarT=0;
+function loop(ts){
+  if(last===null)last=ts;let dt=Math.min(.1,(ts-last)/1000);last=ts;
+  if(!paused){const d=dt*speed;step(d);anim+=d;radarT+=d;if(radarT>1.1){radarT=0;S.radarIdx=(S.radarIdx+1)%8;}}
+  render();drawScene();drawMap();drawTrend();
+  requestAnimationFrame(loop);
+}
+S.L=levels();S.link='4G';
+requestAnimationFrame(loop);
+
+$('b-play').onclick=()=>{paused=!paused;$('b-play').textContent=paused?'▶ Continuar':'❚❚ Pausar';$('b-play').classList.toggle('act',!paused);};
+$('b-spd').onclick=()=>{speed=speed===1?2:speed===2?0.5:1;$('b-spd').textContent=(speed===0.5?'0,5':speed)+'×';};
+$('b-rst').onclick=()=>{reset();scroll=0;};
+document.querySelectorAll('.ph').forEach(el=>el.onclick=()=>{const i=+el.dataset.i;reset();scroll=0;const target=PT[i];while(S.t<target-0.05)step(0.05);});
+</script>
+</body>
+</html>
